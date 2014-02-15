@@ -1,4 +1,4 @@
-ngstools
+ngs-tools
 ========
 
 ngs data manipulations
