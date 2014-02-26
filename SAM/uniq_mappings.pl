@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# Script name: uniq_mappings.pl - Stephane Plaisance, BITS-VIB, 2014-02-26
+# Script name: uniq_mappings.pl (v1.0)
 #
 # Description: 
 #  filter a name-sorted BAM file containing multiple mapping reads
@@ -13,6 +13,8 @@ use strict;
 #
 # Example usage
 # samtools view -h sorted-file.bam | uniq_mappings.pl
+#
+# Stéphane Plaisance - VIB-BITS - February-26-2014 
 
 # write directly, do not buffer
 $|=1;
