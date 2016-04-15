@@ -18,6 +18,7 @@ use List::MoreUtils qw( minmax );
 # - changed the diagnosing algoritm
 # Stephane Plaisance - VIB-BITS - April-08-2013 
 # - merged both versions and corrected flaw in min/max
+# thanks to Sergey Mitrfanov for perl reformatting
 
 #####################################################################
 # diagnose
