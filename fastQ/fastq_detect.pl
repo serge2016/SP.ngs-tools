@@ -1,6 +1,9 @@
 #!/usr/bin/perl -w
 
 # http://wiki.bits.vib.be/index.php/Identify_the_Phred_scale_of_quality_scores_used_in_fastQ
+# https://github.com/splaisan/SP.ngs-tools/blob/master/fastQ/fastq_detect.pl
+# http://drive5.com/usearch/manual/quality_score.html -> ASCII_BASE
+# https://www.biostars.org/p/90845/#90856
 
 use strict;
 use File::Basename;
@@ -18,7 +21,7 @@ use List::MoreUtils qw( minmax );
 # - changed the diagnosing algoritm
 # Stephane Plaisance - VIB-BITS - April-08-2013 
 # - merged both versions and corrected flaw in min/max
-# thanks to Sergey Mitrfanov for perl reformatting
+# thanks to Sergey Mitrofanov for perl reformatting
 
 #####################################################################
 # diagnose
@@ -45,22 +48,22 @@ use List::MoreUtils qw( minmax );
 
 my $script = basename($0);
  
-@ARGV gt 0 or die "usage: $script <fastq file> <opt:sample-size (100)>\n";
+@ARGV gt 0 or die ("Usage: $script <fastq file> [sample-size (def. 100)]\n");
 my ($inputfile, $limit) = @ARGV;
 if (! defined $limit) { $limit = 100}; # check first 100 records
 
-my $cnt=0;
+my $cnt = 0;
 my ($min, $max); # global min and max values
 
-print STDERR "\n## Analysing ".$limit." records from $inputfile ... \n";
-my $z = ReadFile ($inputfile) || die "Error: cannot read from variant file $inputfile: $!\n";
+my $z = ReadFile ($inputfile) || die ("ERROR. Cannot read from file '$inputfile'.\n$!");
+print "analysing $limit records from '$inputfile' ... \n";
 
 ## parse
 while (my $id = <$z>) {
-	$id =~ m/^@/ || die "expected @ not found in line 1!\n";
+	$id =~ m/^@/ || die ("ERROR. Expected symbol '\@' was not found in line 1.\n$!");
 	my $seq = <$z>;
 	my $sep = <$z>;
-	$sep =~ m/^\+/ || die "expected + not found in line 3!\n";
+	$sep =~ m/^\+/ || die ("ERROR. Expected symbol '+' was not found in line 3.\n$!");
 	my $qual = <$z>;
 	chomp($qual);
 	$cnt++;
@@ -91,26 +94,26 @@ my %diag=(
 			);
 
 my %comment=(
-			'Sanger'		=> 'Phred+33,  Q[33; 73],  (0, 40)',
-			'Solexa'		=> 'Solexa+64, Q[59; 104], (-5, 40)',
-			'Illumina 1.3+'	=> 'Phred+64,  Q[64; 104], (0, 40)',
-			'Illumina 1.5+'	=> 'Phred+64,  Q[66; 104], (3, 40), with 0=N/A, 1=N/A, 2=Read Segment Quality Control Indicator',
-			'Illumina 1.8+'	=> 'Phred+33,  Q[33; 74],  (0, 41)',
+			'Sanger'		=>  "Phred+33\t33\tQ[33;  73]\t(0, 40)",
+			'Solexa'		=> "Solexa+64\t64\tQ[59; 104]\t(-5, 40)",
+			'Illumina 1.3+'	=>  "Phred+64\t64\tQ[64; 104]\t(0, 40)",
+			'Illumina 1.5+'	=>  "Phred+64\t64\tQ[66; 104]\t(3, 40), with 0=N/A, 1=N/A, 2=Read Segment Quality Control Indicator",
+			'Illumina 1.8+'	=>  "Phred+33\t33\tQ[33;  74]\t(0, 41)",
 			);
 
-if ($min<33 || $max>104) { die "Quality values corrupt. found [$min; $max] where [33; 104] was expected\n"; }
-if ($min>=33 && $max<=73)  {$diag{'Sanger'}='x';}
-if ($min>=59 && $max<=104) {$diag{'Solexa'}='x';}
-if ($min>=64 && $max<=104) {$diag{'Illumina 1.3+'}='x';}
-if ($min>=66 && $max<=104) {$diag{'Illumina 1.5+'}='x';}
-if ($min>=33 && $max<=74)  {$diag{'Illumina 1.8+'}='x';}
- 
-## report
-print STDERR "# sampled raw quality values are in the range of [".$min."; ".$max."]\n";
-print STDERR "# format(s) marked below with 'x' agree with this range\n";
+if ($min<33 || $max>104) { die ("ERROR. Quality values in file '$inputfile' are wrong: found [$min; $max] where [33; 104] was expected.\n$!"); }
+my $matchedFlag=0;
+if ($min>=33 && $max<=73)  {$diag{'Sanger'}='x'; $matchedFlag++;}
+if ($min>=59 && $max<=104) {$diag{'Solexa'}='x'; $matchedFlag++;}
+if ($min>=64 && $max<=104) {$diag{'Illumina 1.3+'}='x'; $matchedFlag++;}
+if ($min>=66 && $max<=104) {$diag{'Illumina 1.5+'}='x'; $matchedFlag++;}
+if ($min>=33 && $max<=74)  {$diag{'Illumina 1.8+'}='x'; $matchedFlag++;}
+if ($matchedFlag==0) { die ("ERROR. Quality score range [$min; $max] in file '$inputfile' doesn't match to any of predefined.\n$!"); }
 
+## report
+print "  Sampled raw quality values are in the range of [$min; $max], format(s) marked below with 'x' agree with this range:\n";
 foreach my $format (sort keys %diag) {
-	print STDERR sprintf("  %-13s : %2s  [%-30s] \n", $format, $diag{$format}, $comment{$format});
+	print sprintf("    %-13s : %2s  [%-30s] \n", $format, $diag{$format}, $comment{$format});
 }
 
 
@@ -121,14 +124,20 @@ foreach my $format (sort keys %diag) {
 sub ReadFile {
 	my $infile = shift;
 	my $FH;
+	if (! -f $infile) {
+		die ("ERROR. File '$infile' doesn't exist.\n$!");
+	}
 	if ($infile =~ /.bz2$/) {
-		open ($FH, "bzcat $infile |") or die ("$!: can't open file $infile");
+		open ($FH, "bzcat $infile |") or die ("ERROR. Can't open file '$infile'.\n$!");
+		print "  'bz2' file format recognized, ";
 	} elsif ($infile =~ /.gz$/) {
-		open ($FH, "zcat $infile |") or die ("$!: can't open file $infile");
-	} elsif ($infile =~ /.fq|.fastq|.txt$/) {
-		open ($FH, "cat $infile |") or die ("$!: can't open file $infile");
+		open ($FH, "zcat $infile |") or die ("ERROR. Can't open file '$infile'.\n$!");
+		print "  '.gz' file format recognized, ";
+	} elsif ($infile =~ /.fq$|.fastq$|.txt$/) {
+		open ($FH, "cat $infile |") or die ("ERROR. Can't open file '$infile'.\n$!");
+		print "  Unpacked file format recognized, ";
 	} else {
-		die ("$!: do not recognise file type $infile");
+		die ("ERROR. The file type of '$infile' is not recognized.\n$!");
 	}
 	return $FH;
 }
