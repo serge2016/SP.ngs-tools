@@ -4,6 +4,15 @@
 # https://github.com/splaisan/SP.ngs-tools/blob/master/fastQ/fastq_detect.pl
 # http://drive5.com/usearch/manual/quality_score.html -> ASCII_BASE
 # https://www.biostars.org/p/90845/#90856
+# https://github.com/torognes/vsearch-data/tree/master/fastq-test-suite ???
+# http://www.illumina.com/content/dam/illumina-marketing/documents/products/technotes/technote_Q-Scores.pdf
+# https://www.biostars.org/p/179149/#179233
+# https://github.com/kvarq/kvarq/blob/master/kvarq/fastq.py
+#  'Sanger',        range(0, 50),   0
+#  'Solexa',        range(-5, 41), 31
+#  'Illumina 1.3+', range(0, 41),  31
+#  'Illumina 1.5+', range(3, 42),  31
+#  'Illumina 1.8+', range(0, 62),   0
 
 use strict;
 use File::Basename;
@@ -33,17 +42,17 @@ use List::MoreUtils qw( minmax );
 #   !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
 #   |                         |    |        |                              |                     |
 #  33                        59   64       73                            104                   126
-# S 0........................26...31.......40                               
-# X                          -5....0........9.............................40
-# I                                0........9.............................40
-# J                                   3.....9.............................40
-# L 0.2......................26...31........41                              
+# S 0........................26...31.......40
+# X                          -5....0........9..............................41
+# I                                0........9..............................41
+# J                                   3.....9...............................42
+# L 0.2......................26...31.............................62
 # 
 #  S - Sanger        Phred+33,  raw reads typically (0, 40)
-#  X - Solexa        Solexa+64, raw reads typically (-5, 40)
-#  I - Illumina 1.3+ Phred+64,  raw reads typically (0, 40)
-#  J - Illumina 1.5+ Phred+64,  raw reads typically (3, 40) with 0=unused, 1=unused, 2=Read Segment Quality Control Indicator (bold)
-#  L - Illumina 1.8+ Phred+33,  raw reads typically (0, 41)
+#  X - Solexa        Solexa+64, raw reads typically (-5, 41)
+#  I - Illumina 1.3+ Phred+64,  raw reads typically (0, 41)
+#  J - Illumina 1.5+ Phred+64,  raw reads typically (3, 42) with 0=unused, 1=unused, 2=Read Segment Quality Control Indicator (bold)
+#  L - Illumina 1.8+ Phred+33,  raw reads typically (0, 62)
 #####################################################################
 
 my $script = basename($0);
@@ -95,19 +104,19 @@ my %diag=(
 
 my %comment=(
 			'Sanger'		=>  "Phred+33\t33\tQ[33;  73]\t(0, 40)",
-			'Solexa'		=> "Solexa+64\t64\tQ[59; 104]\t(-5, 40)",
-			'Illumina 1.3+'	=>  "Phred+64\t64\tQ[64; 104]\t(0, 40)",
-			'Illumina 1.5+'	=>  "Phred+64\t64\tQ[66; 104]\t(3, 40), with 0=N/A, 1=N/A, 2=Read Segment Quality Control Indicator",
-			'Illumina 1.8+'	=>  "Phred+33\t33\tQ[33;  74]\t(0, 41)",
+			'Solexa'		=> "Solexa+64\t64\tQ[59; 105]\t(-5, 41)",
+			'Illumina 1.3+'	=>  "Phred+64\t64\tQ[64; 105]\t(0, 41)",
+			'Illumina 1.5+'	=>  "Phred+64\t64\tQ[66; 106]\t(3, 42), with 0=N/A, 1=N/A, 2=Read Segment Quality Control Indicator",
+			'Illumina 1.8+'	=>  "Phred+33\t33\tQ[33;  95]\t(0, 62)",
 			);
 
-if ($min<33 || $max>104) { die ("ERROR. Quality values in file '$inputfile' are wrong: found [$min; $max] where [33; 104] was expected.\n$!"); }
+if ($min<33 || $max>106) { die ("ERROR. Quality values in file '$inputfile' are wrong: found [$min; $max] where max range [33; 106] was expected.\n$!"); }
 my $matchedFlag=0;
 if ($min>=33 && $max<=73)  {$diag{'Sanger'}='x'; $matchedFlag++;}
-if ($min>=59 && $max<=104) {$diag{'Solexa'}='x'; $matchedFlag++;}
-if ($min>=64 && $max<=104) {$diag{'Illumina 1.3+'}='x'; $matchedFlag++;}
-if ($min>=66 && $max<=104) {$diag{'Illumina 1.5+'}='x'; $matchedFlag++;}
-if ($min>=33 && $max<=74)  {$diag{'Illumina 1.8+'}='x'; $matchedFlag++;}
+if ($min>=59 && $max<=105) {$diag{'Solexa'}='x'; $matchedFlag++;}
+if ($min>=64 && $max<=105) {$diag{'Illumina 1.3+'}='x'; $matchedFlag++;}
+if ($min>=66 && $max<=106) {$diag{'Illumina 1.5+'}='x'; $matchedFlag++;}
+if ($min>=33 && $max<=95)  {$diag{'Illumina 1.8+'}='x'; $matchedFlag++;}
 if ($matchedFlag==0) { die ("ERROR. Quality score range [$min; $max] in file '$inputfile' doesn't match to any of predefined.\n$!"); }
 
 ## report
